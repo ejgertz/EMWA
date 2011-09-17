@@ -1,0 +1,344 @@
+/* ==============================
+ * This code, which assumes you're using the official Arduino Ethernet shield,
+ * updates a Pachube feed with your analog-in values and grabs values from a Pachube
+ * feed - basically it enables you to have both "local" and "remote" sensors.
+ *
+ * Tested with Arduino 14
+ *
+ * Pachube is www.pachube.com - connect, tag and share real time sensor data
+ * code by usman (www.haque.co.uk), may 2009
+ * copy, distribute, whatever, as you like.
+ *
+ * v1.1 - added User-Agent & fixed HTTP parser for new Pachube headers
+ * and check millis() for when it wraps around
+ *
+ * =============================== */
+
+
+//#include <spi.h>
+#include <Ethernet.h>
+#include <string.h>
+#include <SPI.h>  // Add this through the menu -- Sketch | Import Library | SPI
+
+#undef int() // needed by arduino 0011 to allow use of stdio
+#include <stdio.h> // for function sprintf
+
+
+#define SHARE_FEED_ID                  34225         // this is your Pachube feed ID that you want to share to
+#define REMOTE_FEED_ID                 000          // this is the ID of the remote Pachube feed that you want to connect to
+#define REMOTE_FEED_DATASTREAMS        0            // make sure that remoteSensor array is big enough to fit all the remote data streams
+#define UPDATE_INTERVAL                60000        // if the connection is good wait 10 seconds before updating again - should not be less than 5
+#define RESET_INTERVAL                 60000        // if connection fails/resets wait 10 seconds before trying again - should not be less than 5
+
+
+#define PACHUBE_API_KEY                "2u6FT54p15flDVlRUCug9ncKcvM8jiVcNQ2THI8gK-Y" // fill in your API key
+
+
+byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4A, 0xE9 }; // make sure this is unique on your network
+byte ip[] = { 192, 168, 1, 110   };
+byte subnet[] = {255, 255, 254,0};
+byte gateway[]={208,120,198,153 };                     // no DHCP so we set our own IP address
+byte remoteServer[] = { 173,203,98,29 };                // pachube.com
+
+
+float remoteSensor[REMOTE_FEED_DATASTREAMS];            // we know that feed 256 has floats - this might need changing for feeds without floats
+
+
+int geiger_input = 2;
+long count = 0;
+long countPerMinute = 0;
+long timePrevious = 0;
+long timePreviousMeassure = 0;
+long time = 0;
+long countPrevious = 0;
+float radiationValue = 0.0;
+
+
+#define CONV_FACTOR 0.0057
+
+
+
+
+void setup()
+{
+  Serial.begin(57600);
+  setupEthernet();
+  pinMode(geiger_input, INPUT);
+  digitalWrite(geiger_input,HIGH);
+
+  attachInterrupt(0,countPulse,FALLING);
+}
+
+
+void loop()
+{
+  if (millis()-timePreviousMeassure > 10000)
+  {
+
+        //count = random(2,200);
+        countPerMinute = count;
+        radiationValue = countPerMinute * CONV_FACTOR;
+        timePreviousMeassure = millis();
+        Serial.print("cpm = ");
+        Serial.print(countPerMinute,DEC);
+        Serial.print(" - ");
+        Serial.print("uSv/h = ");
+        Serial.println(radiationValue,4);
+
+   count = 0;
+
+
+  }
+
+
+  pachube_in_out();
+
+
+
+
+}
+
+
+
+
+void countPulse()
+{
+  detachInterrupt(0);
+  count++;
+  digitalWrite(13,HIGH);
+  while(digitalRead(2)==0){}
+  digitalWrite(13,LOW);
+  attachInterrupt(0,countPulse,FALLING);
+}
+
+
+
+
+Client localClient(remoteServer, 80);
+unsigned int interval;
+
+
+char buff[64];
+int pointer = 0;
+
+
+void setupEthernet(){
+  resetEthernetShield();
+  Client remoteClient(255);
+  delay(500);
+  interval = UPDATE_INTERVAL;
+  Serial.println("setup complete");
+}
+
+
+void clean_buffer() {
+  pointer = 0;
+  memset(buff,0,sizeof(buff));
+}
+
+
+void resetEthernetShield(){
+  Serial.println("reset ethernet");
+        Ethernet.begin(mac, ip, gateway, subnet);
+}
+
+
+char pachube_data[70];
+
+
+boolean found_status_200 = false;
+boolean found_session_id = false;
+boolean found_CSV = false;
+char *found;
+unsigned int successes = 0;
+unsigned int failures = 0;
+boolean ready_to_update = true;
+boolean reading_pachube = false;
+
+
+boolean request_pause = false;
+boolean found_content = false;
+
+
+unsigned long last_connect;
+
+
+int content_length;
+
+
+void pachube_in_out()
+{
+
+
+  if (millis() < last_connect) last_connect = millis();
+
+
+  if (request_pause){
+        if ((millis() - last_connect) > interval){
+          ready_to_update = true;
+          reading_pachube = false;
+          request_pause = false;
+          found_status_200 = false;
+          found_session_id = false;
+          found_CSV = false;
+
+
+          //Serial.print("Ready to connect: ");
+          //Serial.println(millis());
+        }
+  }
+
+
+  if (ready_to_update){
+        Serial.println("Connecting...");
+        if (localClient.connect()) {
+
+
+          // here we assign comma-separated values to 'data', which will update Pachube datastreams
+          // we use all the analog-in values, but could of course use anything else millis(), digital
+          // inputs, etc. . i also like to keep track of successful and failed connection
+          // attempts, sometimes useful for determining whether there are major problems.
+
+
+          sprintf(pachube_data,"%d,%d", countPerMinute, radiationValue);
+          content_length = strlen(pachube_data);
+          Serial.println("We're connected to Pachube!");
+
+
+          localClient.print("PUT /api/");
+          localClient.print(SHARE_FEED_ID);
+          localClient.print(".csv HTTP/1.1\nHost: pachube.com\nX-PachubeApiKey: ");
+          localClient.print(PACHUBE_API_KEY);
+
+
+          localClient.print("\nUser-Agent: Arduino (Pachube In Out v1.1)");
+          localClient.print("\nContent-Type: text/csv\nContent-Length: ");
+          localClient.print(content_length);
+          localClient.print("\nConnection: close\n\n");
+          localClient.print(pachube_data);
+          localClient.print("\n");
+
+          Serial.print("We've sent ");
+          Serial.print(pachube_data);
+          Serial.println("to Pachube.");
+
+
+          ready_to_update = false;
+          reading_pachube = true;
+          request_pause = false;
+          interval = UPDATE_INTERVAL;
+
+
+          // Serial.print("finished PUT: ");
+          // Serial.println(millis());
+
+
+        }
+        else {
+          Serial.print("connection failed!");
+          Serial.print(++failures);
+          found_status_200 = false;
+          found_session_id = false;
+          found_CSV = false;
+          ready_to_update = false;
+          reading_pachube = false;
+          request_pause = true;
+          last_connect = millis();
+          interval = RESET_INTERVAL;
+          setupEthernet();
+        }
+  }
+
+
+  while (reading_pachube){
+        while (localClient.available()) {
+          checkForResponse();
+        }
+
+
+        if (!localClient.connected()) {
+          disconnect_pachube();
+        }
+  }
+}
+
+
+void disconnect_pachube(){
+  Serial.println("disconnecting.\n=====\n\n");
+  localClient.stop();
+  ready_to_update = false;
+  reading_pachube = false;
+  request_pause = true;
+  last_connect = millis();
+  found_content = false;
+  resetEthernetShield();
+}
+
+
+
+
+void checkForResponse(){
+  char c = localClient.read();
+  //Serial.print(c);
+  buff[pointer] = c;
+  if (pointer < 64) pointer++;
+  if (c == '\n') {
+        found = strstr(buff, "200 OK");
+        if (found != 0){
+          found_status_200 = true;
+          //Serial.println("Status 200");
+        }
+        buff[pointer]=0;
+        found_content = true;
+        clean_buffer();
+  }
+
+
+  if ((found_session_id) && (!found_CSV)){
+        found = strstr(buff, "HTTP/1.1");
+        if (found != 0){
+          char csvLine[strlen(buff)-9];
+          strncpy (csvLine,buff,strlen(buff)-9);
+
+
+          //Serial.println("This is the retrieved CSV:");
+          //Serial.println("---");
+          //Serial.println(csvLine);
+          //Serial.println("---");
+          Serial.println("\n--- updated: ");
+          Serial.println(pachube_data);
+          Serial.println("\n--- retrieved: ");
+          char delims[] = ",";
+          char *result = NULL;
+          char * ptr;
+          result = strtok_r( buff, delims, &ptr );
+          int counter = 0;
+          while( result != NULL ) {
+            remoteSensor[counter++] = atof(result);
+            result = strtok_r( NULL, delims, &ptr );
+          }
+          for (int i = 0; i < REMOTE_FEED_DATASTREAMS; i++){
+            Serial.print( (int)remoteSensor[i]); // because we can't print floats
+            Serial.print("\t");
+          }
+
+
+          found_CSV = true;
+
+
+          Serial.print("\nsuccessful updates=");
+          Serial.println(++successes);
+
+
+        }
+  }
+
+
+  if (found_status_200){
+        found = strstr(buff, "_id=");
+        if (found != 0){
+          clean_buffer();
+          found_session_id = true;
+        }
+  }
+}

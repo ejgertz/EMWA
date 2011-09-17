@@ -1,0 +1,76 @@
+/* The following code snippets should be added
+to SDCardReadWrite, in order to store temperature data the SD card.
+*/
+
+//Add the following line to the very top of the sketch.
+//This adds the set of library functions that tell
+// Arduino how to talk to the SD card.
+
+
+#include<SD.h>
+
+
+
+
+//Add the following lines to the bottom of the 
+//_setup( )_ function in the sketch:
+
+Serial.print("Initializing SD card...");
+ // make sure that the default chip select pin is set to
+ // output, even if you don't use it:
+ pinMode(10, OUTPUT);
+
+
+ // see if the card is present and can be initialized:
+ if (!SD.begin(chipSelect)) {
+        Serial.println("Card failed, or not present");
+        // don't do anything more:
+        return;
+ }
+ Serial.println("card initialized.");
+
+
+
+//Add the following lines at the bottom of the _loop( )_ function:
+
+      String dataString = "";
+      dataString = String(millis());
+      dataString += "         Temperature: ";
+        dataString += String((int)temperature);
+        dataString +=" degrees C         Humidity: ";
+        dataString += String((int)humidity);
+        dataString +=" %";
+        
+         Serial.println(dataString);
+        
+         writeDataToSD(dataString);
+         
+// Add the following function to the bottom of the sketch:
+
+
+void writeDataToSD(String dataString)
+{
+
+
+ // open the file. note that only one file can be open at a time,
+ // so you have to close this one before opening another.
+         Serial.print("opeining file...");
+ File dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+
+        Serial.print("file open...");
+
+
+ // if the file is available, write to it:
+ if (dataFile) {
+        dataFile.println(dataString);
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(dataString);
+ }  
+ // if the file isn't open, pop up an error:
+ else {
+        Serial.println("error opening datalog.txt");
+ }
+}
+

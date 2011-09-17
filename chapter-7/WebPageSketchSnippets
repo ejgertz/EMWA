@@ -1,0 +1,79 @@
+/* Make a Temperature/Humidity Web Page */
+
+//Add the following code snippets should be added 
+// to your basic temperature/humidity sketch:
+
+----
+#include <Ethernet.h>
+// the sensor communicates using SPI, so include the library:
+#include <SPI.h>
+
+
+byte mac[] = {0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX};
+// assign an IP address for the controller:
+byte ip[] = { 192,168,1,20 };
+
+
+
+//Insert these lines of code at the top of the _setup()_ function:
+
+
+ Ethernet.begin(mac, ip);
+ server.begin();
+
+
+
+//Add this line of code to the bottom of the loop() function:
+
+
+ listenForClients();
+
+
+//Add the following function to the bottom of the sketch:
+
+
+void listenForClients() {
+ // listen for incoming clients
+ Client client = server.available();
+ if (client) {
+        Serial.println("Got a client");
+        // an http request ends with a blank line
+        boolean currentLineIsBlank = true;
+        while (client.connected()) {
+         if (client.available()) {
+           char c = client.read();
+           // if you've gotten to the end of the line (received a newline
+           // character) and the line is blank, the http request has ended,
+           // so you can send a reply
+           if (c == '\n' && currentLineIsBlank) {
+             // send a standard http response header
+             client.println("HTTP/1.1 200 OK");
+             client.println("Content-Type: text/html");
+             client.println();
+             // print the current readings, in HTML format:
+             client.print("Temperature: ");
+             client.print(temperature);
+             client.print(" degrees C");
+             client.println("<br />");
+             client.print("Humidity: " );
+             client.print(humidity);
+             client.print(" %");
+             client.println("<br />");  
+             break;
+           }
+           if (c == '\n') {
+             // you're starting a new line
+             currentLineIsBlank = true;
+           }
+           else if (c != '\r') {
+             // you've gotten a character on the current line
+             currentLineIsBlank = false;
+           }
+         }
+        }
+        // give the web browser time to receive the data
+        delay(1);
+        // close the connection:
+        client.stop();
+ }
+}
