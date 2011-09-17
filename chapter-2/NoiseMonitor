@@ -1,0 +1,132 @@
+/*
+ Noise Monitor
+ Sketch for an Arduino gadget that detects electro-magnetic interference.
+ This example code is in the public domain.
+*/
+
+int sensorPin = A0;        // select the input pin for the potentiometer
+//int sensorValue = 0;  // variable to store the value coming from the sensor
+
+
+const int numberOfSamples = 16;
+int sample;
+long signal[numberOfSamples];
+long runningAverage;
+long sumOfSamples = 0;
+int counter =0;
+
+int threshold[] = {0, 47, 99, 159, 227, 308, 407, 535, 715, 800, 900};
+
+//const int threshold = 1024/10;
+
+void setup()
+{
+  // declare the ledPin as an OUTPUT:
+  pinMode(2, OUTPUT);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(11, OUTPUT);
+
+  digitalWrite(2, LOW);
+  digitalWrite(3, LOW);
+  digitalWrite(4, LOW);
+  digitalWrite(5, LOW);
+  digitalWrite(6, LOW);
+  digitalWrite(7, LOW);
+  digitalWrite(8, LOW);
+  digitalWrite(9, LOW);
+  digitalWrite(10, LOW);
+  digitalWrite(11, LOW);
+
+  for(int i =0; i <=numberOfSamples; i++)
+          {
+           sample = analogRead(sensorPin);
+
+           signal[i] = abs(sample -512);
+           sumOfSamples = sumOfSamples + signal[i];
+          }
+
+  for(int i=0; i <=10; i++)
+         {
+         digitalWrite(i+1, HIGH);
+         }
+
+  for(int i=0; i <=10; i++)
+         {
+         digitalWrite(i+1, LOW);
+         }
+
+
+  Serial.begin(9600);
+
+
+}
+
+
+void loop()
+{
+  // read the value from the sensor:
+  //long sumOfSamples = 0;
+
+  counter = ++counter % numberOfSamples;
+//  Serial.print("Counter             = ");
+//  Serial.println(counter);
+
+  sumOfSamples -= signal[counter];
+//  Serial.print("SumOfSamples        = ");
+//  Serial.println(sumOfSamples);
+
+  sample = analogRead(sensorPin);
+  //sample = 1023;
+  //Serial.print("Signal              = ");
+  //Serial.println(abs(sample-512));
+
+  signal[counter] = abs(sample -512);
+//  Serial.print("Signal[counter] = ");
+//  Serial.println(signal[counter]);
+
+
+  sumOfSamples = sumOfSamples + signal[counter];
+
+
+//  Serial.print("SumOfSamples        = ");
+//  Serial.println(sumOfSamples);
+
+  //if (sumOfSamples <0) sumOfSamples = 0;
+
+  //runningAverage = map((sumOfSamples),0,(numberOfSamples*1024),0,1023);
+  runningAverage = sumOfSamples/numberOfSamples;
+
+  Serial.print("Running Value   = ");
+  Serial.println(runningAverage);
+  Serial.println(" ");
+
+  for (int i =1; i <=10; i++)
+  {
+
+        digitalWrite(i+1, LOW);
+        if(runningAverage>threshold[i])
+          {
+          digitalWrite(i+1, HIGH);
+          }
+        else
+          {
+          digitalWrite(i+1, LOW);
+          }
+
+  }
+
+  /*
+  for (int i =10; i >=1; i--)
+  {
+        digitalWrite(i+1, LOW);
+  }
+
+
+}
