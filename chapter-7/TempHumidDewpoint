@@ -1,0 +1,365 @@
+/* Temperature-Humidity-Dewpoint Monitor
+This sketch gathers temperature and humidity data via a DHT22 sensor,
+and also calculates dew point based on those measurements.
+ */
+
+#include <DHT22.h>
+#include <SoftwareSerial.h>
+#include <stdlib.h>
+
+#define DHT22_ERROR_VALUE -99.5
+
+
+// Data wire is plugged into port 4 on the Arduino
+// Connect a 4.7K resistor between VCC and the data pin (strong pullup)
+
+
+#define DHT22_PIN 4
+
+
+// Setup a DHT22 instance
+DHT22 myDHT22(DHT22_PIN);
+
+
+#define SerialIn 2
+#define SerialOut 3
+
+
+#define wDelay 900
+
+
+byte thou=0;
+byte hund=0;
+byte tens=0;
+byte ones=0;
+
+
+SoftwareSerial mySerialPort(SerialIn, SerialOut);
+
+
+
+
+
+
+
+
+void setup(void)
+{
+
+
+// start serial port
+Serial.begin(9600);
+Serial.println("DHT22 Library Demo");
+
+
+
+
+
+
+pinMode(SerialOut, OUTPUT);
+pinMode(SerialIn, INPUT);
+
+
+mySerialPort.begin(19200);
+mySerialPort.print("v");
+
+
+
+
+
+
+mySerialPort.print("xxxx");
+delay(wDelay);
+mySerialPort.print("----");
+delay(wDelay);
+mySerialPort.print("8888");
+delay(wDelay);
+mySerialPort.print("xxxx");
+delay(wDelay);
+
+
+}
+
+
+
+
+
+
+void loop(void)
+{
+float tempC;
+float tempF;
+float humid;
+float dewPoint;
+
+
+
+
+DHT22_ERROR_t errorCode;
+
+
+delay(2000);
+
+
+errorCode = myDHT22.readData();
+switch(errorCode)
+{
+        case DHT_ERROR_NONE:
+        Serial.print("Temperature: ");
+        tempC = myDHT22.getTemperatureC();
+                 
+        Serial.print(tempC);
+        Serial.print("C Humidity: ");
+        
+        
+        dispData((int)tempC, 'C');
+        
+        tempF = (tempC*1.8)+32;
+        
+        delay(wDelay);
+        dispData((int) tempF, 'F');
+        delay(wDelay);
+        
+        humid = myDHT22.getHumidity();
+        
+        Serial.print(humid);
+        Serial.println("%");
+        
+        dispData((int)humid, 'h');
+        delay(wDelay);         
+        
+        dewPoint = calculateDewpoint(tempC, humid);
+        dispData((int) dewPoint, 'd');
+ 
+        Serial.print(dewPoint);
+        Serial.println("d");
+        
+        delay(wDelay);   
+
+
+        
+        break;
+        case DHT_ERROR_CHECKSUM:
+        Serial.print("check sum error ");
+        Serial.print(myDHT22.getTemperatureC());
+        Serial.print("C ");
+        Serial.print(myDHT22.getHumidity());
+        Serial.println("%");
+        break;
+        case DHT_BUS_HUNG:
+        Serial.println("BUS Hung ");
+        mySerialPort.print("bush");
+        break;
+        case DHT_ERROR_NOT_PRESENT:
+        Serial.println("Not Present ");
+        mySerialPort.print("uhoh");
+        break;
+        case DHT_ERROR_ACK_TOO_LONG:
+        Serial.println("ACK time out ");
+        mySerialPort.print("ACTO");
+        break;
+        case DHT_ERROR_SYNC_TIMEOUT:
+        Serial.println("Sync Timeout ");
+        mySerialPort.print("Snch");
+        break;
+        case DHT_ERROR_DATA_TIMEOUT:
+        Serial.println("Data Timeout ");
+        mySerialPort.print("Time");
+        break;
+        case DHT_ERROR_TOOQUICK:
+        Serial.println("Polled to quick ");
+        mySerialPort.print("Fast");
+        break;
+}
+
+
+
+
+}
+
+
+
+
+float calculateDewpoint(float T, float RH)
+{
+// approximate dewpoint using the formula from wikipedia's article on dewpoint
+
+
+float dp = 0.0;
+float gTRH = 0.0;
+float a = 17.271;
+float b = 237.7;
+
+
+gTRH = ((a*T)/(b+T))+log(RH/100);
+dp = (b*gTRH)/(a-gTRH);
+
+
+return dp;
+}
+
+
+
+
+
+
+void dispData(int i, char c)
+{
+
+
+//char c = ' ';
+
+
+ones=0;
+tens=0;
+hund=0;
+thou=0;
+
+
+
+
+if(c == 'k' || c=='K' || c=='m' || c=='l' || c == 'v' || c=='V' || c=='W' || c=='Z' || c=='w' || c=='z')
+ {
+        mySerialPort.print("bAdx");
+        return;
+        
+ }
+
+
+ 
+if((i<-999) || (i>9999))
+ {
+        mySerialPort.print("ERRx");
+        return;
+ }
+
+
+
+
+
+
+int sign = i;
+i = abs(i);
+//float_toggle = 0;
+
+
+ones = i%10;
+if(i>=10) tens = ((i%100)-ones)/10;
+if(i>=100) hund = ((i%1000)-(tens*10)-ones)/100;
+if(i>=1000) thou = ((i%10000)-(hund*100)-(tens*10)-ones)/1000;  
+
+
+
+
+
+
+if (thou>0)
+ {
+        mySerialPort.print(thou);
+        mySerialPort.print(hund);
+        mySerialPort.print(tens);
+        mySerialPort.print(ones);
+        Serial.print((int)thou);
+        Serial.print((int)hund);
+        Serial.print((int)tens);
+        Serial.print((int)ones);
+
+
+        return;
+ }
+
+
+if ((hund>0)&& (sign<0))
+ {
+        mySerialPort.print("-");
+        mySerialPort.print(hund);
+        mySerialPort.print(tens);
+        mySerialPort.print(ones);
+        Serial.print((int)hund);
+        Serial.print((int)tens);
+        Serial.print((int)ones);
+        Serial.print(c);
+        return;
+ }
+
+
+ 
+if (hund>0)
+ {
+        mySerialPort.print(hund);
+        mySerialPort.print(tens);
+        mySerialPort.print(ones);
+        mySerialPort.print(c);
+        Serial.print((int)hund);
+        Serial.print((int)tens);
+        Serial.print((int)ones);
+        Serial.print(c);
+        return;
+ }
+
+
+if ((tens>0)  && (sign<0))
+ {
+        mySerialPort.print("-");
+        mySerialPort.print(tens);
+        mySerialPort.print(ones);
+        mySerialPort.print(c);
+        Serial.print("-");
+        Serial.print((int)tens);
+        Serial.print((int)ones);
+        Serial.print(c);
+
+
+
+
+        return;
+ }
+
+
+if (tens>0)  
+ {
+        mySerialPort.print(tens);
+        mySerialPort.print(ones);
+        mySerialPort.print("x");
+        mySerialPort.print(c);
+        Serial.print((int)tens);
+        Serial.print((int)ones);
+        Serial.print("x");
+        Serial.print(c);
+
+
+
+
+        return;
+ }
+
+
+if((ones>0) && (sign<0))
+        {
+        mySerialPort.print("-");
+        mySerialPort.print(ones);
+        mySerialPort.print("x");
+        mySerialPort.print(c);
+        Serial.print("-");
+        Serial.print((int)ones);
+        Serial.print("x");
+        Serial.print(c);
+        return;
+        }
+
+
+
+
+if(ones>0)
+        {
+        mySerialPort.print("x");
+        mySerialPort.print(ones);
+        mySerialPort.print("x");
+        mySerialPort.print(c);
+        Serial.print("x");
+        Serial.print((int)ones);
+        Serial.print("x");
+        Serial.print(c);
+        return;
+        }
+}
