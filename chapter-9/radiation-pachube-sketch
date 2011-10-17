@@ -24,11 +24,11 @@
 #include <stdio.h> // for function sprintf
 
 
-#define SHARE_FEED_ID                  34225         // this is your Pachube feed ID that you want to share to
-#define REMOTE_FEED_ID                 000          // this is the ID of the remote Pachube feed that you want to connect to
-#define REMOTE_FEED_DATASTREAMS        0            // make sure that remoteSensor array is big enough to fit all the remote data streams
-#define UPDATE_INTERVAL                60000        // if the connection is good wait 10 seconds before updating again - should not be less than 5
-#define RESET_INTERVAL                 60000        // if connection fails/resets wait 10 seconds before trying again - should not be less than 5
+#define SHARE_FEED_ID           34225        // this is your Pachube feed ID that you want to share to
+#define REMOTE_FEED_ID          000          // this is the ID of the remote Pachube feed that you want to connect to
+#define REMOTE_FEED_DATASTREAMS 0            // ensure remoteSensor array is big enough to fit remote data streams
+#define UPDATE_INTERVAL         60000        // if the connection is good wait 10 seconds before updating again
+#define RESET_INTERVAL          60000        // if connection fails/resets wait 10 seconds before trying again 
 
 
 #define PACHUBE_API_KEY                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" // fill in your API key
@@ -37,11 +37,11 @@
 byte mac[] = { 0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX }; // make sure this is unique on your network
 byte ip[] = { 192, 168, 1, 110   };
 byte subnet[] = {255, 255, 254,0};
-byte gateway[]={208,120,198,153 };                     // no DHCP so we set our own IP address
-byte remoteServer[] = { 173,203,98,29 };                // pachube.com
+byte gateway[]={208,120,198,153 };                   // no DHCP so we set our own IP address
+byte remoteServer[] = { 173,203,98,29 };             // pachube.com
 
 
-float remoteSensor[REMOTE_FEED_DATASTREAMS];            // we know that feed 256 has floats - this might need changing for feeds without floats
+float remoteSensor[REMOTE_FEED_DATASTREAMS];         
 
 
 int geiger_input = 2;
@@ -56,6 +56,34 @@ float radiationValue = 0.0;
 
 #define CONV_FACTOR 0.0057
 
+Client localClient(remoteServer, 80);
+unsigned int interval;
+
+
+char buff[64];
+int pointer = 0;
+
+char pachube_data[70];
+
+
+boolean found_status_200 = false;
+boolean found_session_id = false;
+boolean found_CSV = false;
+char *found;
+unsigned int successes = 0;
+unsigned int failures = 0;
+boolean ready_to_update = true;
+boolean reading_pachube = false;
+
+
+boolean request_pause = false;
+boolean found_content = false;
+
+
+unsigned long last_connect;
+
+
+int content_length;
 
 
 
@@ -114,13 +142,6 @@ void countPulse()
 
 
 
-Client localClient(remoteServer, 80);
-unsigned int interval;
-
-
-char buff[64];
-int pointer = 0;
-
 
 void setupEthernet(){
   resetEthernetShield();
@@ -143,27 +164,6 @@ void resetEthernetShield(){
 }
 
 
-char pachube_data[70];
-
-
-boolean found_status_200 = false;
-boolean found_session_id = false;
-boolean found_CSV = false;
-char *found;
-unsigned int successes = 0;
-unsigned int failures = 0;
-boolean ready_to_update = true;
-boolean reading_pachube = false;
-
-
-boolean request_pause = false;
-boolean found_content = false;
-
-
-unsigned long last_connect;
-
-
-int content_length;
 
 
 void pachube_in_out()
