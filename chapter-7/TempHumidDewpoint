@@ -1,18 +1,13 @@
 /* Temperature-Humidity-Dewpoint Monitor
 This sketch gathers temperature and humidity data via a DHT22 sensor,
 and also calculates dew point based on those measurements.
- */
+*/
 
 #include <DHT22.h>
 #include <SoftwareSerial.h>
 #include <stdlib.h>
 
 #define DHT22_ERROR_VALUE -99.5
-
-
-// Data wire is plugged into port 4 on the Arduino
-// Connect a 4.7K resistor between VCC and the data pin (strong pullup)
-
 
 #define DHT22_PIN 4
 
@@ -25,7 +20,7 @@ DHT22 myDHT22(DHT22_PIN);
 #define SerialOut 3
 
 
-#define wDelay 900
+#define 4Delay 900
 
 
 byte thou=0;
@@ -37,12 +32,6 @@ byte ones=0;
 SoftwareSerial mySerialPort(SerialIn, SerialOut);
 
 
-
-
-
-
-
-
 void setup(void)
 {
 
@@ -52,30 +41,21 @@ Serial.begin(9600);
 Serial.println("DHT22 Library Demo");
 
 
-
-
-
-
 pinMode(SerialOut, OUTPUT);
 pinMode(SerialIn, INPUT);
 
 
-mySerialPort.begin(19200);
+mySerialPort.begin(9600);
 mySerialPort.print("v");
 
-
-
-
-
-
 mySerialPort.print("xxxx");
-delay(wDelay);
+delay(4Delay);
 mySerialPort.print("----");
-delay(wDelay);
+delay(4Delay);
 mySerialPort.print("8888");
-delay(wDelay);
+delay(4Delay);
 mySerialPort.print("xxxx");
-delay(wDelay);
+delay(4Delay);
 
 
 }
@@ -102,6 +82,7 @@ delay(2000);
 
 
 errorCode = myDHT22.readData();
+
 switch(errorCode)
 {
         case DHT_ERROR_NONE:
@@ -116,9 +97,9 @@ switch(errorCode)
         
         tempF = (tempC*1.8)+32;
         
-        delay(wDelay);
+        delay(4Delay);
         dispData((int) tempF, 'F');
-        delay(wDelay);
+        delay(4Delay);
         
         humid = myDHT22.getHumidity();
         
@@ -126,7 +107,7 @@ switch(errorCode)
         Serial.println("%");
         
         dispData((int)humid, 'h');
-        delay(wDelay);         
+        delay(4Delay);         
         
         dewPoint = calculateDewpoint(tempC, humid);
         dispData((int) dewPoint, 'd');
@@ -134,41 +115,24 @@ switch(errorCode)
         Serial.print(dewPoint);
         Serial.println("d");
         
-        delay(wDelay);   
+        delay(4Delay);   
 
 
         
         break;
         case DHT_ERROR_CHECKSUM:
-        Serial.print("check sum error ");
-        Serial.print(myDHT22.getTemperatureC());
-        Serial.print("C ");
-        Serial.print(myDHT22.getHumidity());
-        Serial.println("%");
         break;
         case DHT_BUS_HUNG:
-        Serial.println("BUS Hung ");
-        mySerialPort.print("bush");
         break;
         case DHT_ERROR_NOT_PRESENT:
-        Serial.println("Not Present ");
-        mySerialPort.print("uhoh");
         break;
         case DHT_ERROR_ACK_TOO_LONG:
-        Serial.println("ACK time out ");
-        mySerialPort.print("ACTO");
         break;
         case DHT_ERROR_SYNC_TIMEOUT:
-        Serial.println("Sync Timeout ");
-        mySerialPort.print("Snch");
         break;
         case DHT_ERROR_DATA_TIMEOUT:
-        Serial.println("Data Timeout ");
-        mySerialPort.print("Time");
         break;
         case DHT_ERROR_TOOQUICK:
-        Serial.println("Polled to quick ");
-        mySerialPort.print("Fast");
         break;
 }
 
@@ -363,3 +327,5 @@ if(ones>0)
         return;
         }
 }
+
+
