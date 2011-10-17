@@ -1,9 +1,8 @@
 /* Make a Temperature/Humidity Web Page */
 
 //Add the following code snippets should be added 
-// to your basic temperature/humidity sketch:
+//to the top of your basic temperature/humidity sketch:
 
-----
 #include <Ethernet.h>
 // the sensor communicates using SPI, so include the library:
 #include <SPI.h>
