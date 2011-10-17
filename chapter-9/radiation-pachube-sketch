@@ -15,7 +15,7 @@
  * =============================== */
 
 
-//#include <spi.h>
+
 #include <Ethernet.h>
 #include <string.h>
 #include <SPI.h>  // Add this through the menu -- Sketch | Import Library | SPI
@@ -31,10 +31,10 @@
 #define RESET_INTERVAL                 60000        // if connection fails/resets wait 10 seconds before trying again - should not be less than 5
 
 
-#define PACHUBE_API_KEY                "2u6FT54p15flDVlRUCug9ncKcvM8jiVcNQ2THI8gK-Y" // fill in your API key
+#define PACHUBE_API_KEY                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" // fill in your API key
 
 
-byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x4A, 0xE9 }; // make sure this is unique on your network
+byte mac[] = { 0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX }; // make sure this is unique on your network
 byte ip[] = { 192, 168, 1, 110   };
 byte subnet[] = {255, 255, 254,0};
 byte gateway[]={208,120,198,153 };                     // no DHCP so we set our own IP address
