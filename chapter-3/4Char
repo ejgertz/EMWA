@@ -1,29 +1,30 @@
 /*
  4Char Test
  Sketch in Programming to test a scrolling 4-character display.
+ The traditional 'first code' is to display "Hello World", but
+ the 4char can't display the letter "w". So we improvise...
  This example code is in the public domain.
 */
 
-#include <SoftwareSerial.h>[a]
+#include <SoftwareSerial.h>
 #define SerialIn 2
-#define SerialOut 3[b]
+#define SerialOut 3
 #define 4Delay 600
 
 
-SoftwareSerial mySerialPort(SerialIn, SerialOut);[c]
+SoftwareSerial mySerialPort(SerialIn, SerialOut);
 
 
 void setup()
 {
 pinMode(SerialOut, OUTPUT);
-pinMode(SerialIn, INPUT);[d]
+pinMode(SerialIn, INPUT);
 
-
+//Set the port speed
 mySerialPort.begin(9600);
-mySerialPort.print("v");[e]
 
-
-
+//Send the character 'v' to reset the display
+mySerialPort.print("v");
 
 }
 
@@ -32,109 +33,109 @@ void loop()
 {
 
 
-mySerialPort.print("xxxx")[f];
+// The 4Char treats the character 'x' as a blank space.
+mySerialPort.print("xxxx");
 delay(4Delay);
+
 mySerialPort.print("xxx1");
 delay(4Delay);
+
 mySerialPort.print("xx12");
 delay(4Delay);
+
 mySerialPort.print("x123");
 delay(4Delay);
 
-
-mySerialPort.print("1234"[g])[h];
+mySerialPort.print("1234");
 delay(4Delay);
-
 
 mySerialPort.print("2345");
 delay(4Delay);
 
-
 mySerialPort.print("3456");
 delay(4Delay);
+
 mySerialPort.print("4567");
 delay(4Delay);
+
 mySerialPort.print("5678");
 delay(4Delay);
- mySerialPort.print("6789");
+
+mySerialPort.print("6789");
 delay(4Delay);
+
 mySerialPort.print("7890");
 delay(4Delay);
+
 mySerialPort.print("8900");
 delay(4Delay);
+
 mySerialPort.print("9000");
 delay(4Delay);
+
 mySerialPort.print("0000");
 delay(4Delay);
 
 
-for (int i = 0; i <250; i++)
-        {
-        mySerialPort.print(0x77);
-        mySerialPort.print(itoa(i,););
-        }
-
-
-
 
 mySerialPort.print("----");
 delay(4Delay);
+
 mySerialPort.print("8888");
 delay(4Delay);
 
-
 mySerialPort.print("----");
 delay(4Delay);
+
 mySerialPort.print("xxxx");
 delay(4Delay);
 
 
+
 mySerialPort.print("xxxH");
 delay(4Delay);
+
 mySerialPort.print("xxHE");
 delay(4Delay);
-mySerialPort.print("xHEL")[i];
+
+mySerialPort.print("xHEL");
 delay(4Delay);
-
-
-
 
 mySerialPort.print("HELL");
 delay(4Delay);
 
-
 mySerialPort.print("ELLO");
 delay(4Delay);
- mySerialPort.print("LLOx");
+
+mySerialPort.print("LLOx");
 delay(4Delay);
-
-
-
-
-
 
 mySerialPort.print("LOxt");
 delay(4Delay);
+
 mySerialPort.print("Lxth");
 delay(4Delay);
+
 mySerialPort.print("xthE");
 delay(4Delay);
+
 mySerialPort.print("thEr");
 delay(4Delay);
 
-
 mySerialPort.print("hErE");
 delay(4Delay);
+
 mySerialPort.print("ErEx");
 delay(4Delay);
+
 mySerialPort.print("rExx");
 delay(4Delay);
+
 mySerialPort.print("Exxx");
 delay(4Delay);
-mySerialPort.print("xxxx");[j]
+
+mySerialPort.print("xxxx");
 delay(4Delay);
-
-
 delay(4Delay);
 delay(4Delay);
 delay(4Delay);
