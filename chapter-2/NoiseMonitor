@@ -120,7 +120,7 @@ void loop()
 
   }
 
-  /*
+  
   for (int i =10; i >=1; i--)
   {
         digitalWrite(i+1, LOW);
