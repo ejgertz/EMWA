@@ -7,138 +7,133 @@
 */
 
 #include <SoftwareSerial.h>
+
 #define SerialIn 2
 #define SerialOut 3
-#define 4Delay 600
+
+#define Xdelay 600
+
+String txtmessage = "HELLo ThErE";
+
+byte thou=0;
+byte hund=0;
+byte tens=0;
+byte ones=0;
 
 
 SoftwareSerial mySerialPort(SerialIn, SerialOut);
 
-
 void setup()
 {
-pinMode(SerialOut, OUTPUT);
-pinMode(SerialIn, INPUT);
+  pinMode(SerialOut, OUTPUT);
+  pinMode(SerialIn, INPUT);
 
-//Set the port speed
-mySerialPort.begin(9600);
 
-//Send the character 'v' to reset the display
-mySerialPort.print("v");
+  // open communications with the 4char display
+  mySerialPort.begin(9600);
+
+  // the 'v' character resets the display
+  mySerialPort.print("v");
 
 }
-
 
 void loop()
 {
+  thou=0;
+  hund=0;
+  tens=0;
+  ones=0;
 
 
-// The 4Char treats the character 'x' as a blank space.
-mySerialPort.print("xxxx");
-delay(4Delay);
-
-mySerialPort.print("xxx1");
-delay(4Delay);
-
-mySerialPort.print("xx12");
-delay(4Delay);
-
-mySerialPort.print("x123");
-delay(4Delay);
-
-mySerialPort.print("1234");
-delay(4Delay);
-
-mySerialPort.print("2345");
-delay(4Delay);
-
-mySerialPort.print("3456");
-delay(4Delay);
-
-mySerialPort.print("4567");
-delay(4Delay);
-
-mySerialPort.print("5678");
-delay(4Delay);
-
-mySerialPort.print("6789");
-delay(4Delay);
-
-mySerialPort.print("7890");
-delay(4Delay);
-
-mySerialPort.print("8900");
-delay(4Delay);
-
-mySerialPort.print("9000");
-delay(4Delay);
-
-mySerialPort.print("0000");
-delay(4Delay);
+  // light up all segments as a test
+  mySerialPort.print("----");
+  delay(Xdelay); 
+  mySerialPort.print("8888");
+  delay(Xdelay); 
+  mySerialPort.print("----");
+  delay(Xdelay); 
+  mySerialPort.print("xxxx");
+  delay(Xdelay); 
 
 
 
-mySerialPort.print("----");
-delay(4Delay);
+  // scroll from 1 to 0 the hard way 
+  mySerialPort.print("xxxx");
+  delay(Xdelay);  
+  mySerialPort.print("xxx1");
+  delay(Xdelay); 
+  mySerialPort.print("xx12");
+  delay(Xdelay); 
+  mySerialPort.print("x123");
+  delay(Xdelay); 
+  mySerialPort.print("1234");
+  delay(Xdelay); 
+  mySerialPort.print("2345");
+  delay(Xdelay); 
+  mySerialPort.print("3456");
+  delay(Xdelay); 
+  mySerialPort.print("4567");
+  delay(Xdelay); 
+  mySerialPort.print("5678");
+  delay(Xdelay); 
+  mySerialPort.print("6789");
+  delay(Xdelay); 
+  mySerialPort.print("7890");
+  delay(Xdelay); 
+  mySerialPort.print("8900");
+  delay(Xdelay); 
+  mySerialPort.print("9000");
+  delay(Xdelay); 
+  mySerialPort.print("0000");
+  delay(Xdelay); 
 
-mySerialPort.print("8888");
-delay(4Delay);
 
-mySerialPort.print("----");
-delay(4Delay);
+  // Count from 0 to 1008 by nines
 
-mySerialPort.print("xxxx");
-delay(4Delay);
+  for (int i =0; i <=1008; i=i+9)
+  {
+    ones = i%10;
+    if(i>=10) tens = ((i%100)-ones)/10;
+    if(i>=100) hund = ((i%1000)-(tens*10)-ones)/100;
+    if(i>=1000) thou = ((i%10000)-(hund*100)-(tens*10)-ones)/1000;
+
+    mySerialPort.print(thou);
+    mySerialPort.print(hund);
+    mySerialPort.print(tens);
+    mySerialPort.print(ones);
+
+    delay(Xdelay/10);
+  }
 
 
 
-mySerialPort.print("xxxH");
-delay(4Delay);
+  delay(Xdelay); 
+  mySerialPort.print("xxxx");
+  delay(Xdelay); 
 
-mySerialPort.print("xxHE");
-delay(4Delay);
 
-mySerialPort.print("xHEL");
-delay(4Delay);
+  // Scroll a txtmessage a more complicated way
+  // First add the appropriate buffer 
+  txtmessage = "xxxx"+txtmessage+"xxxxx";
+  // then convert from String object to char array,
+  // which is the only thing SoftwareSerial can print
+  char temps[txtmessage.length()];
+  txtmessage.toCharArray(temps,txtmessage.length());
 
-mySerialPort.print("HELL");
-delay(4Delay);
+  // then scroll through the txtmessage 
+  for(int i = 0; i <= txtmessage.length()-5; i++)
+  {
+    mySerialPort.print(temps[i]);
+    mySerialPort.print(temps[i+1]);
+    mySerialPort.print(temps[i+2]);
+    mySerialPort.print(temps[i+3]);
+    delay(Xdelay);
+  }
 
-mySerialPort.print("ELLO");
-delay(4Delay);
 
-mySerialPort.print("LLOx");
-delay(4Delay);
-
-mySerialPort.print("LOxt");
-delay(4Delay);
-
-mySerialPort.print("Lxth");
-delay(4Delay);
-
-mySerialPort.print("xthE");
-delay(4Delay);
-
-mySerialPort.print("thEr");
-delay(4Delay);
-
-mySerialPort.print("hErE");
-delay(4Delay);
-
-mySerialPort.print("ErEx");
-delay(4Delay);
-
-mySerialPort.print("rExx");
-delay(4Delay);
-
-mySerialPort.print("Exxx");
-delay(4Delay);
-
-mySerialPort.print("xxxx");
-delay(4Delay);
-delay(4Delay);
-delay(4Delay);
-delay(4Delay);
-
+  delay(Xdelay); 
+  delay(Xdelay); 
+  delay(Xdelay); 
 
 }
+
