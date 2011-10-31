@@ -24,21 +24,25 @@
 #include <Ethernet.h>
 
 
-// assign a MAC address for the ethernet controller.
-// fill in your address here:
-byte mac[] = {
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};[a]
-// assign an IP address for the controller:
-byte ip[] = {
-  192,169,1,20 };
-byte gateway[] = {
-  192,168,1,1};    
-byte subnet[] = {
-  255, 255, 255, 0 };
+// replace the Xs with the MAC address of your Ethernet Shield:
+byte mac[] = { 0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX };
 
 
-//  The address of the server you want to connect to (pachube.com):
-byte remoteServer[] = { 173,203,98,29 };                // pachube.com
+// provide an IP address for your Ethernet shield. The IP address below _might_ work:
+byte ip[] = { 192, 168, 1, 110 };
+
+
+byte subnet[] = {255, 255, 254,0};
+
+// replace this with the internet IP address of your router:
+byte gateway[]={127,0,0,1 };
+
+// This should be the IP address for Pachube.com. Check Pachube to see if it has changed.
+byte remoteServer[] = { 173,203,98,29 };
+
+
+
+
 
 
 // initialize the library instance:
