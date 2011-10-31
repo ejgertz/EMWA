@@ -55,7 +55,7 @@ byte ip[] = { 192, 168, 1, 110   };
 byte subnet[] = {255, 255, 254,0};
 
 // replace this with the internet IP address of your router:
-byte gateway[]={208,120,198,153 };                   
+byte gateway[]={127,0,0,1 };                   
 
 // This should be the IP address for Pachube.com. Check Pachube to see if it has changed.
 byte remoteServer[] = { 173,203,98,29 };             
