@@ -124,7 +124,6 @@ void loop()
   if (millis()-timePreviousMeassure > 10000)
   {
 
-        //count = random(2,200);
         countPerMinute = count * 6;
         radiationValue = countPerMinute * CONV_FACTOR;
         timePreviousMeassure = millis();
