@@ -1,76 +1,514 @@
-/* The following code snippets should be added
-to SDCardReadWrite, in order to store temperature data the SD card.
+/* Temperature-Humidity-Dewpoint Monitor
+This sketch gathers temperature and humidity data via a DHT22 sensor,
+and also calculates dew point based on those measurements.
 */
 
-//Add the following line to the very top of the sketch.
-//This adds the set of library functions that tell
-// Arduino how to talk to the SD card.
+#include <SoftwareSerial.h>
+#include <stdlib.h>
+
+#define DHT22_ERROR_VALUE -99.5
+
+#define DHT22_PIN 4
+
+typedef enum
+{
+  DHT_ERROR_NONE = 0,
+  DHT_BUS_HUNG,
+  DHT_ERROR_NOT_PRESENT,
+  DHT_ERROR_ACK_TOO_LONG,
+  DHT_ERROR_SYNC_TIMEOUT,
+  DHT_ERROR_DATA_TIMEOUT,
+  DHT_ERROR_CHECKSUM,
+  DHT_ERROR_TOOQUICK
+} DHT22_ERROR_t;
+
+class DHT22
+{
+  private:
+    uint8_t _bitmask;
+    volatile uint8_t *_baseReg;
+    unsigned long _lastReadTime;
+    float _lastHumidity;
+    float _lastTemperature;
+
+  public:
+    DHT22(uint8_t pin);
+    DHT22_ERROR_t readData(void);
+    float getHumidity();
+    float getTemperatureC();
+    void clockReset();
+};
 
 
-#include<SD.h>
+// Setup a DHT22 instance
+DHT22 myDHT22(DHT22_PIN);
 
 
+#define SerialIn 2
+#define SerialOut 3
 
 
-//Add the following lines to the bottom of the 
-//_setup( )_ function in the sketch:
-
-Serial.print("Initializing SD card...");
- // make sure that the default chip select pin is set to
- // output, even if you don't use it:
- pinMode(10, OUTPUT);
+#define WDelay 900
 
 
- // see if the card is present and can be initialized:
- if (!SD.begin(chipSelect)) {
-        Serial.println("Card failed, or not present");
-        // don't do anything more:
-        return;
- }
- Serial.println("card initialized.");
+byte thou=0;
+byte hund=0;
+byte tens=0;
+byte ones=0;
 
 
-
-//Add the following lines at the bottom of the _loop( )_ function:
-
-      String dataString = "";
-      dataString = String(millis());
-      dataString += "         Temperature: ";
-        dataString += String((int)temperature);
-        dataString +=" degrees C         Humidity: ";
-        dataString += String((int)humidity);
-        dataString +=" %";
-        
-         Serial.println(dataString);
-        
-         writeDataToSD(dataString);
-         
-// Add the following function to the bottom of the sketch:
+SoftwareSerial mySerialPort(SerialIn, SerialOut);
 
 
-void writeDataToSD(String dataString)
+void setup(void)
 {
 
 
- // open the file. note that only one file can be open at a time,
- // so you have to close this one before opening another.
-         Serial.print("opeining file...");
- File dataFile = SD.open("datalog.txt", FILE_WRITE);
+// start serial port
+Serial.begin(9600);
+Serial.println("DHT22 Library Demo");
 
 
-        Serial.print("file open...");
+pinMode(SerialOut, OUTPUT);
+pinMode(SerialIn, INPUT);
 
 
- // if the file is available, write to it:
- if (dataFile) {
-        dataFile.println(dataString);
-        dataFile.close();
-        // print to the serial port too:
-        Serial.println(dataString);
- }  
- // if the file isn't open, pop up an error:
- else {
-        Serial.println("error opening datalog.txt");
- }
+mySerialPort.begin(9600);
+mySerialPort.print("v");
+
+mySerialPort.print("xxxx");
+delay(WDelay);
+mySerialPort.print("----");
+delay(WDelay);
+mySerialPort.print("8888");
+delay(WDelay);
+mySerialPort.print("xxxx");
+delay(WDelay);
+
+
 }
 
+
+
+
+
+
+void loop(void)
+{
+float tempC;
+float tempF;
+float humid;
+float dewPoint;
+
+
+
+
+DHT22_ERROR_t errorCode;
+
+
+delay(2000);
+
+
+errorCode = myDHT22.readData();
+
+Serial.print(errorCode);
+
+switch(errorCode)
+{
+        case DHT_ERROR_NONE:
+        Serial.print("Temperature: ");
+        tempC = myDHT22.getTemperatureC();
+                 
+        Serial.print(tempC);
+        Serial.print("C Humidity: ");
+        
+        dispData((int)tempC, 'C');
+        
+        tempF = (tempC*1.8)+32;
+        
+        
+        
+        delay(WDelay);
+        dispData((int) tempF, 'F');
+        delay(WDelay);
+        
+        humid = myDHT22.getHumidity();
+        
+        Serial.print(humid);
+        Serial.println("%");
+        
+        dispData((int)humid, 'h');
+        delay(WDelay);
+        
+        dewPoint = calculateDewpoint(tempC, humid);
+        dispData((int) dewPoint, 'd');
+ 
+        Serial.print(dewPoint);
+        Serial.println("d");
+        
+        delay(WDelay);
+
+
+        
+        break;
+        case DHT_ERROR_CHECKSUM:
+        Serial.print("Error Cheksum");
+        break;
+        case DHT_BUS_HUNG:
+        Serial.print("Bus Hung");
+        break;
+        case DHT_ERROR_NOT_PRESENT:
+        Serial.print("Not Present");
+        break;
+        case DHT_ERROR_ACK_TOO_LONG:
+        Serial.print("ACK too long");
+        break;
+        case DHT_ERROR_SYNC_TIMEOUT:
+        Serial.print("Sync timeout");
+        break;
+        case DHT_ERROR_DATA_TIMEOUT:
+        Serial.print("Data timeout");
+        break;
+        case DHT_ERROR_TOOQUICK:
+        Serial.print("Too quick!");
+        break;
+}
+
+
+
+
+}
+
+
+
+
+float calculateDewpoint(float T, float RH)
+{
+// approximate dewpoint using the formula from wikipedia's article on dewpoint
+
+
+float dp = 0.0;
+float gTRH = 0.0;
+float a = 17.271;
+float b = 237.7;
+
+
+gTRH = ((a*T)/(b+T))+log(RH/100);
+dp = (b*gTRH)/(a-gTRH);
+
+
+return dp;
+}
+
+
+
+void dispData(int i, char c)
+{
+
+ if(c == 'k' || c=='K' || c=='m' || c=='l' || c == 'v' || c=='V' || c=='W' || c=='Z' || c=='w' || c=='z')
+ {
+        mySerialPort.print("bAdx");
+        return;
+        
+ }
+ 
+   
+ if((i<-999) || (i>9999))
+ {
+   mySerialPort.print("ERRx");
+   return;
+ }
+
+ mySerialPort.print("v");
+
+ if (i > 999) { // i between 1000 and 9999 inclusive
+
+   mySerialPort.print(i, DEC);
+
+ } else if (i > 99) { // i between 100 and 999, inclusive
+
+   mySerialPort.print(i, DEC);
+   mySerialPort.print(c);
+
+ } else if (i > 9) { // i between 10 and 99 inclusive
+
+   mySerialPort.print(i, DEC);
+   mySerialPort.print("x");
+   mySerialPort.print(c);
+
+ } else if (i > 0) { // i between 1 and 9 inclusive
+
+   mySerialPort.print("x");
+   mySerialPort.print(i, DEC);
+   mySerialPort.print("x");
+      mySerialPort.print(c);
+
+ } else if (i < -99) { // i between -100 and -999, inclusive
+
+   mySerialPort.print(i, DEC);
+   mySerialPort.print(c);
+
+ } else if (i < -9) { // i between -10 and -99, inclusive
+
+   mySerialPort.print(i, DEC);
+   mySerialPort.print(c);
+
+ } else if (i < 0) { // i between -1 and -9 inclusive
+
+   mySerialPort.print(i, DEC);
+   mySerialPort.print("x");
+   mySerialPort.print(c);
+
+ }
+
+}
+
+
+
+
+
+
+
+/*
+  DHT22.cpp - DHT22 sensor library
+  Developed by Ben Adams - 2011
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+
+Humidity and Temperature Sensor DHT22 info found at
+http://www.sparkfun.com/products/10167
+
+Version 0.4: 24-Jan-2011 by Ben Adams
+Added return code constants to keywords.txt
+Returns DHT_ERROR_CHECKSUM on check sum mismatch 
+
+Version 0.3: 17-Jan-2011 by Ben Adams
+This version reads data
+Needs check sum code added at the end of readData
+
+Version 0.2: 16-Jan-2011 by Ben Adams
+Changed coding style to match other Arduino libraries.
+This version will not read data either!
+
+Version 0.1: 10-Jan-2011 by Ben Adams nethoncho AT gmail.com
+First Version is a skeleton. This version will not read data!
+Code adapted from the following sources:
+The Arduino OneWire lib
+http://sheepdogguides.com/arduino/ar3ne1humDHT11.htm
+
+*/
+
+#include "Arduino.h"
+
+extern "C" {
+//#include "WConstants.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <avr/pgmspace.h>
+}
+
+#define DIRECT_READ(base, mask) 	(((*(base)) & (mask)) ? 1 : 0)
+#define DIRECT_MODE_INPUT(base, mask)	((*(base+1)) &= ~(mask))
+#define DIRECT_MODE_OUTPUT(base, mask)	((*(base+1)) |= (mask))
+#define DIRECT_WRITE_LOW(base, mask)	((*(base+2)) &= ~(mask))
+//#define DIRECT_WRITE_HIGH(base, mask)	((*(base+2)) |= (mask))
+
+// This should be 40, but the sensor is adding an extra bit at the start
+#define DHT22_DATA_BIT_COUNT 41
+
+DHT22::DHT22(uint8_t pin)
+{
+    _bitmask =  digitalPinToBitMask(pin);
+    _baseReg = portInputRegister(digitalPinToPort(pin));
+    _lastReadTime = millis();
+    _lastHumidity = DHT22_ERROR_VALUE;
+    _lastTemperature = DHT22_ERROR_VALUE;
+}
+
+//
+// Read the 40 bit data stream from the DHT 22
+// Store the results in private member data to be read by public member functions
+//
+DHT22_ERROR_t DHT22::readData()
+{
+  uint8_t bitmask = _bitmask;
+  volatile uint8_t *reg asm("r30") = _baseReg;
+  uint8_t retryCount;
+  uint8_t bitTimes[DHT22_DATA_BIT_COUNT];
+  int currentHumidity;
+  int currentTemperature;
+  uint8_t checkSum, csPart1, csPart2, csPart3, csPart4;
+  unsigned long currentTime;
+  int i;
+
+  currentHumidity = 0;
+  currentTemperature = 0;
+  checkSum = 0;
+  currentTime = millis();
+  for(i = 0; i < DHT22_DATA_BIT_COUNT; i++)
+  {
+    bitTimes[i] = 0;
+  }
+
+  if(currentTime - _lastReadTime < 2000)
+  {
+    // Caller needs to wait 2 seconds between each call to readData
+    return DHT_ERROR_TOOQUICK;
+  }
+  _lastReadTime = currentTime;
+
+  // Pin needs to start HIGH, wait until it is HIGH with a timeout
+  cli();
+  DIRECT_MODE_INPUT(reg, bitmask);
+  sei();
+  retryCount = 0;
+  do
+  {
+    if (retryCount > 125)
+    {
+      return DHT_BUS_HUNG;
+    }
+    retryCount++;
+    delayMicroseconds(2);
+  } while(!DIRECT_READ(reg, bitmask));
+  // Send the activate pulse
+  cli();
+  DIRECT_WRITE_LOW(reg, bitmask);
+  DIRECT_MODE_OUTPUT(reg, bitmask); // Output Low
+  sei();
+  delayMicroseconds(1100); // 1.1 ms
+  cli();
+  DIRECT_MODE_INPUT(reg, bitmask);	// Switch back to input so pin can float
+  sei();
+  // Find the start of the ACK Pulse
+  retryCount = 0;
+  do
+  {
+    if (retryCount > 25) //(Spec is 20 to 40 us, 25*2 == 50 us)
+    {
+      return DHT_ERROR_NOT_PRESENT;
+    }
+    retryCount++;
+    delayMicroseconds(2);
+  } while(!DIRECT_READ(reg, bitmask));
+  // Find the end of the ACK Pulse
+  retryCount = 0;
+  do
+  {
+    if (retryCount > 50) //(Spec is 80 us, 50*2 == 100 us)
+    {
+      return DHT_ERROR_ACK_TOO_LONG;
+    }
+    retryCount++;
+    delayMicroseconds(2);
+  } while(DIRECT_READ(reg, bitmask));
+  // Read the 40 bit data stream
+  for(i = 0; i < DHT22_DATA_BIT_COUNT; i++)
+  {
+    // Find the start of the sync pulse
+    retryCount = 0;
+    do
+    {
+      if (retryCount > 35) //(Spec is 50 us, 35*2 == 70 us)
+      {
+        return DHT_ERROR_SYNC_TIMEOUT;
+      }
+      retryCount++;
+      delayMicroseconds(2);
+    } while(!DIRECT_READ(reg, bitmask));
+    // Measure the width of the data pulse
+    retryCount = 0;
+    do
+    {
+      if (retryCount > 50) //(Spec is 80 us, 50*2 == 100 us)
+      {
+        return DHT_ERROR_DATA_TIMEOUT;
+      }
+      retryCount++;
+      delayMicroseconds(2);
+    } while(DIRECT_READ(reg, bitmask));
+    bitTimes[i] = retryCount;
+  }
+  // Now bitTimes have the number of retries (us *2)
+  // that were needed to find the end of each data bit
+  // Spec: 0 is 26 to 28 us
+  // Spec: 1 is 70 us
+  // bitTimes[x] <= 11 is a 0
+  // bitTimes[x] >  11 is a 1
+  // Note: the bits are offset by one from the data sheet, not sure why
+  for(i = 0; i < 16; i++)
+  {
+    if(bitTimes[i + 1] > 11)
+    {
+      currentHumidity |= (1 << (15 - i));
+    }
+  }
+  for(i = 0; i < 16; i++)
+  {
+    if(bitTimes[i + 17] > 11)
+    {
+      currentTemperature |= (1 << (15 - i));
+    }
+  }
+  for(i = 0; i < 8; i++)
+  {
+    if(bitTimes[i + 33] > 11)
+    {
+      checkSum |= (1 << (7 - i));
+    }
+  }
+
+  _lastHumidity = (float(currentHumidity & 0x7FFF) / 10.0);
+  if(currentTemperature & 0x8000)
+  {
+   // Below zero, non standard way of encoding negative numbers!
+    currentTemperature &= 0x7FFF;
+    _lastTemperature = (float(currentTemperature) / 10.0) * -1.0;
+  }
+  else
+  {
+    _lastTemperature = float(currentTemperature) / 10.0;
+  }
+
+  csPart1 = currentHumidity >> 8;
+  csPart2 = currentHumidity & 0xFF;
+  csPart3 = currentTemperature >> 8;
+  csPart4 = currentTemperature & 0xFF;
+  if(checkSum == ((csPart1 + csPart2 + csPart3 + csPart4) & 0xFF))
+  {
+    return DHT_ERROR_NONE;
+  }
+  return DHT_ERROR_CHECKSUM;
+}
+
+float DHT22::getHumidity()
+{
+  return _lastHumidity;
+}
+
+float DHT22::getTemperatureC()
+{
+  return _lastTemperature;
+}
+
+//
+// This is used when the millis clock rolls over to zero
+//
+void DHT22::clockReset()
+{
+  _lastReadTime = millis();
+
+}
