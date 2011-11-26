@@ -24,29 +24,16 @@
 #include <Ethernet.h>
 
 
-// replace the Xs with the MAC address of your Ethernet Shield:
-byte mac[] = { 0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX };
+// replace the values with the MAC address of your Ethernet Shield:
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 
 // provide an IP address for your Ethernet shield. The IP address below _might_ work:
 byte ip[] = { 192, 168, 1, 110 };
 
 
-byte subnet[] = {255, 255, 254,0};
-
-// replace this with the internet IP address of your router:
-byte gateway[]={127,0,0,1 };
-
-// This should be the IP address for Pachube.com. Check Pachube to see if it has changed.
-byte remoteServer[] = { 173,203,98,29 };
-
-
-
-
-
-
 // initialize the library instance:
-Client client(server, 80);
+EthernetClient client;
 
 
 long lastConnectionTime = 0;            // last time you connected to the server, in milliseconds
@@ -58,6 +45,8 @@ void setup() {
   // start the ethernet connection and serial port:
   Ethernet.begin(mac, ip);
   Serial.begin(9600);
+  
+   
   // give the ethernet module time to boot up:
   delay(1000);
 }
@@ -100,14 +89,14 @@ void loop() {
 // this method makes a HTTP connection to the server:
 void sendData(int thisData) {
   // if there's a successful connection:
-  if (client.connect()) {
+  if (client.connect("www.pachube.com", 80)) {
         Serial.println("connecting...");
         // send the HTTP PUT request.
         // fill in your feed address here:
-        client.print("PUT /api/YOUR_FEED_HERE.csv HTTP/1.1\n");[b]
+        client.print("PUT /api/YOUR_FEED_HERE.csv HTTP/1.1\n");
         client.print("Host: www.pachube.com\n");
         // fill in your Pachube API key here:
-        client.print("X-PachubeApiKey: YOUR_KEY_HERE\[c]n");
+        client.print("X-PachubeApiKey: YOUR_KEY_HERE\n");
         client.print("Content-Length: ");
 
 
