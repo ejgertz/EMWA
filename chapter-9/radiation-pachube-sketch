@@ -3,7 +3,7 @@
  * updates a Pachube feed with your analog-in values and grabs values from a Pachube
  * feed - basically it enables you to have both "local" and "remote" sensors.
  *
- * Tested with Arduino 14
+ * Tested with Arduino 1.0
  *
  * Pachube is www.pachube.com - connect, tag and share real time sensor data
  * code by usman (www.haque.co.uk), may 2009
@@ -12,141 +12,147 @@
  * v1.1 - added User-Agent & fixed HTTP parser for new Pachube headers
  * and check millis() for when it wraps around
  *
- * =============================== */
+ * 
+ * Ethernet shield attached to pins 10, 11, 12, 13
+ *
+ * created 15 March 2010
+ * updated 4 Sep 2010
+ * by Tom Igoe
+ *
+ * http://www.tigoe.net/pcomp/code/category/arduinowiring/873
+ * This code is in the public domain.
+ *
+ * Modified ummer -Autumn 2011 by Patrick Di Justo
+ */
 
-
-
+#include <SPI.h>
 #include <Ethernet.h>
-#include <string.h>
-#include <SPI.h>  // Add this through the menu -- Sketch | Import Library | SPI
 
-#undef int() // needed by arduino 0011 to allow use of stdio
-#include <stdio.h> // for function sprintf
+// assign a MAC address for the ethernet controller.
+// Newer Ethernet shields have a MAC address printed on a sticker on the shield
+// fill in your address here:
 
-
-// replace this with YOUR Pachube feed ID:
-#define SHARE_FEED_ID           34225     
-
-// this is the ID of the remote Pachube feed that you want to connect to
-#define REMOTE_FEED_ID          000          
-
-// ensure remoteSensor array is big enough to fit remote data streams
-#define REMOTE_FEED_DATASTREAMS 0            
-
-// if the connection is good wait 10 seconds before updating again
-#define UPDATE_INTERVAL         10000        
-
-// if connection fails/resets wait 10 seconds before trying again 
-#define RESET_INTERVAL          10000        
+byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE};
 
 
-// replace the Xs with your Pachube API key:
-#define PACHUBE_API_KEY  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+// initialize the library instance:
+EthernetClient client;
 
+long lastConnectionTime = 0;        // last time you connected to the server, in milliseconds
+boolean lastConnected = false;      // state of the connection last time through the main loop
+const int postingInterval = 15000;  //delay between updates to Pachube.com
 
-// replace the Xs with the MAC address of your Ethernet Shield:
-byte mac[] = { 0xXX, 0xXX, 0xXX, 0xXX, 0xXX, 0xXX }; 
-
-
-// provide an IP address for your Ethernet shield. The IP address below _might_ work:
-byte ip[] = { 192, 168, 1, 110   };
-
-
-byte subnet[] = {255, 255, 254,0};
-
-// replace this with the internet IP address of your router:
-byte gateway[]={127,0,0,1 };                   
-
-// This should be the IP address for Pachube.com. Check Pachube to see if it has changed.
-byte remoteServer[] = { 173,203,98,29 };             
-
-
-float remoteSensor[REMOTE_FEED_DATASTREAMS];         
-
+int minuteFactor = 60000 / postingInterval;
 
 int geiger_input = 2;
-long count = 0;
-long countPerMinute = 0;
-long timePrevious = 0;
 long timePreviousMeassure = 0;
-long time = 0;
-long countPrevious = 0;
+long countPerMinute = 0;
+long count = 0;
 float radiationValue = 0.0;
+
+// Define the SPI pin for the SD Card
+#define SD_CARD 4
+
 
 //This is the conversion factor for the SBM-20 rediation detection tube
 #define CONV_FACTOR 0.0057
 
+// replace th X is with YOUR Pachube feed ID:
+#define SHARE_FEED_ID XXXXX
 
-Client localClient(remoteServer, 80);
-unsigned int interval;
-
-
-char buff[64];
-int pointer = 0;
-
-char pachube_data[70];
-
-
-boolean found_status_200 = false;
-boolean found_session_id = false;
-boolean found_CSV = false;
-char *found;
-unsigned int successes = 0;
-unsigned int failures = 0;
-boolean ready_to_update = true;
-boolean reading_pachube = false;
-
-
-boolean request_pause = false;
-boolean found_content = false;
-
-
-unsigned long last_connect;
-
-
-int content_length;
+// replace the Xs with your Pachube API key:
+#define PACHUBE_API_KEY            "2u6FT54p15flDVlRUCug9ncKcvM8jiVcNQ2THI8gK-Y" // fill in your API key 
 
 
 
-void setup()
+
+
+void setup() 
 {
-  Serial.begin(57600);
-  setupEthernet();
+  
+  // IF using the Wiznet SD card/Ethernet shield, these two lines
+  // are absolutely necessary to temporarily disable the SD card
+  // so that the Ethernet port will work.
+
+  pinMode(SD_CARD, OUTPUT);
+  digitalWrite(SD_CARD, HIGH);
+  
+  
+  // start serial port:
+  Serial.begin(9600);
+  // start the Ethernet connection:
+    delay(1000);
+  
+  
+  if (Ethernet.begin(mac) == 0) 
+  {
+    Serial.println("Failed to configure Ethernet using DHCP");
+    // no point in carrying on, so do nothing forevermore:
+    for(;;)
+      ;
+  }
+  
+  
+  // give the ethernet module time to boot up:
+  delay(1000);
+  
+  // Set the geiger counter input to HIGH so we can tell when it 
+  // changes.  We are going to use Arduino interrupt 0, connected
+  // to digital pin 2, which we are using for geiger_input.
+  
   pinMode(geiger_input, INPUT);
   digitalWrite(geiger_input,HIGH);
 
-  attachInterrupt(0,countPulse,FALLING);
+  attachInterrupt(0,countPulse,CHANGE);
+  
+  
 }
 
+void loop() {
+   
 
-void loop()
-{
-  if (millis()-timePreviousMeassure > 10000)
+ if (millis()-timePreviousMeassure > postingInterval)
   {
-
-        countPerMinute = count * 6;
+ 
+        countPerMinute = count*minuteFactor;
         radiationValue = countPerMinute * CONV_FACTOR;
         timePreviousMeassure = millis();
+        Serial.println(count);
         Serial.print("cpm = ");
         Serial.print(countPerMinute,DEC);
         Serial.print(" - ");
         Serial.print("uSv/h = ");
         Serial.println(radiationValue,4);
-
-   count = 0;
+        count = 0;
 
 
   }
 
+  // if there's incoming data from the net connection.
+  // send it out the serial port.  This is for debugging
+  // purposes only:
+  if (client.available()) {
+    char c = client.read();
+    Serial.print(c);
+  }
 
-  pachube_in_out();
+  // if there's no net connection, but there was one last time
+  // through the loop, then stop the client:
+  if (!client.connected() && lastConnected) {
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
+  }
 
-
-
-
+  // if you're not connected, and ten seconds have passed since
+  // your last connection, then connect again and send data:
+  if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
+    sendData(radiationValue);
+  }
+  // store the state of the connection for next time through
+  // the loop:
+  lastConnected = client.connected();
 }
-
-
 
 
 void countPulse()
@@ -156,209 +162,65 @@ void countPulse()
   digitalWrite(13,HIGH);
   while(digitalRead(2)==0){}
   digitalWrite(13,LOW);
-  attachInterrupt(0,countPulse,FALLING);
+  
+  attachInterrupt(0,countPulse,CHANGE);
 }
 
 
 
 
+// this method makes a HTTP connection to the server:
+void sendData(int thisData) {
+  // if there's a successful connection:
+  if (client.connect("www.pachube.com", 80)) {
+    Serial.println("connecting...");
+    // send the HTTP PUT request. 
+    // fill in your feed address here:
+    client.print("PUT /api/");
+    client.print(SHARE_FEED_ID);
+    client.print(".csv HTTP/1.1\nHost: pachube.com\nX-PachubeApiKey: ");
+    client.print(PACHUBE_API_KEY);
+    client.print("\nContent-Length: ");
 
-void setupEthernet(){
-  resetEthernetShield();
-  Client remoteClient(255);
-  delay(500);
-  interval = UPDATE_INTERVAL;
-  Serial.println("setup complete");
-}
+    // calculate the length of the sensor reading in bytes:
+    int thisLength = getLength(thisData);
+    client.println(thisLength, DEC);
 
+    // last pieces of the HTTP PUT request:
+    client.print("Content-Type: text/csv\n");
+    client.println("Connection: close\n");
 
-void clean_buffer() {
-  pointer = 0;
-  memset(buff,0,sizeof(buff));
-}
+    // here's the actual content of the PUT request:
+    client.println(thisData, DEC);
 
-
-void resetEthernetShield(){
-  Serial.println("reset ethernet");
-        Ethernet.begin(mac, ip, gateway, subnet);
-}
-
-
-
-
-void pachube_in_out()
-{
-
-
-  if (millis() < last_connect) last_connect = millis();
-
-
-  if (request_pause){
-        if ((millis() - last_connect) > interval){
-          ready_to_update = true;
-          reading_pachube = false;
-          request_pause = false;
-          found_status_200 = false;
-          found_session_id = false;
-          found_CSV = false;
-
-
-          //Serial.print("Ready to connect: ");
-          //Serial.println(millis());
-        }
-  }
-
-
-  if (ready_to_update){
-        Serial.println("Connecting...");
-        if (localClient.connect()) {
-
-
-          // here we assign comma-separated values to 'data', which will update Pachube datastreams
-          // we use all the analog-in values, but could of course use anything else millis(), digital
-          // inputs, etc. . i also like to keep track of successful and failed connection
-          // attempts, sometimes useful for determining whether there are major problems.
-
-
-          sprintf(pachube_data,"%d,%d", countPerMinute, radiationValue);
-          content_length = strlen(pachube_data);
-          Serial.println("We're connected to Pachube!");
-
-
-          localClient.print("PUT /api/");
-          localClient.print(SHARE_FEED_ID);
-          localClient.print(".csv HTTP/1.1\nHost: pachube.com\nX-PachubeApiKey: ");
-          localClient.print(PACHUBE_API_KEY);
-
-
-          localClient.print("\nUser-Agent: Arduino (Pachube In Out v1.1)");
-          localClient.print("\nContent-Type: text/csv\nContent-Length: ");
-          localClient.print(content_length);
-          localClient.print("\nConnection: close\n\n");
-          localClient.print(pachube_data);
-          localClient.print("\n");
-
-          Serial.print("We've sent ");
-          Serial.print(pachube_data);
-          Serial.println("to Pachube.");
-
-
-          ready_to_update = false;
-          reading_pachube = true;
-          request_pause = false;
-          interval = UPDATE_INTERVAL;
-
-
-          // Serial.print("finished PUT: ");
-          // Serial.println(millis());
-
-
-        }
-        else {
-          Serial.print("connection failed!");
-          Serial.print(++failures);
-          found_status_200 = false;
-          found_session_id = false;
-          found_CSV = false;
-          ready_to_update = false;
-          reading_pachube = false;
-          request_pause = true;
-          last_connect = millis();
-          interval = RESET_INTERVAL;
-          setupEthernet();
-        }
-  }
-
-
-  while (reading_pachube){
-        while (localClient.available()) {
-          checkForResponse();
-        }
-
-
-        if (!localClient.connected()) {
-          disconnect_pachube();
-        }
+    // note the time that the connection was made:
+    lastConnectionTime = millis();
+  } 
+  else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
   }
 }
 
 
-void disconnect_pachube(){
-  Serial.println("disconnecting.\n=====\n\n");
-  localClient.stop();
-  ready_to_update = false;
-  reading_pachube = false;
-  request_pause = true;
-  last_connect = millis();
-  found_content = false;
-  resetEthernetShield();
-}
 
 
+// This method calculates the number of digits in the
+// sensor reading.  Since each digit of the ASCII decimal
+// representation is a byte, the number of digits equals
+// the number of bytes:
 
-
-void checkForResponse(){
-  char c = localClient.read();
-  //Serial.print(c);
-  buff[pointer] = c;
-  if (pointer < 64) pointer++;
-  if (c == '\n') {
-        found = strstr(buff, "200 OK");
-        if (found != 0){
-          found_status_200 = true;
-          //Serial.println("Status 200");
-        }
-        buff[pointer]=0;
-        found_content = true;
-        clean_buffer();
+int getLength(int someValue) {
+  // there's at least one byte:
+  int digits = 1;
+  // continually divide the value by ten, 
+  // adding one to the digit count for each
+  // time you divide, until you're at 0:
+  int dividend = someValue /10;
+  while (dividend > 0) {
+    dividend = dividend /10;
+    digits++;
   }
-
-
-  if ((found_session_id) && (!found_CSV)){
-        found = strstr(buff, "HTTP/1.1");
-        if (found != 0){
-          char csvLine[strlen(buff)-9];
-          strncpy (csvLine,buff,strlen(buff)-9);
-
-
-          //Serial.println("This is the retrieved CSV:");
-          //Serial.println("---");
-          //Serial.println(csvLine);
-          //Serial.println("---");
-          Serial.println("\n--- updated: ");
-          Serial.println(pachube_data);
-          Serial.println("\n--- retrieved: ");
-          char delims[] = ",";
-          char *result = NULL;
-          char * ptr;
-          result = strtok_r( buff, delims, &ptr );
-          int counter = 0;
-          while( result != NULL ) {
-            remoteSensor[counter++] = atof(result);
-            result = strtok_r( NULL, delims, &ptr );
-          }
-          for (int i = 0; i < REMOTE_FEED_DATASTREAMS; i++){
-            Serial.print( (int)remoteSensor[i]); // because we can't print floats
-            Serial.print("\t");
-          }
-
-
-          found_CSV = true;
-
-
-          Serial.print("\nsuccessful updates=");
-          Serial.println(++successes);
-
-
-        }
-  }
-
-
-  if (found_status_200){
-        found = strstr(buff, "_id=");
-        if (found != 0){
-          clean_buffer();
-          found_session_id = true;
-        }
-  }
+  // return the number of digits:
+  return digits;
 }
