@@ -22,7 +22,7 @@
  * http://www.tigoe.net/pcomp/code/category/arduinowiring/873
  * This code is in the public domain.
  *
- * Modified ummer -Autumn 2011 by Patrick Di Justo
+ * Modified Summer -Autumn 2011 by Patrick Di Justo
  */
 
 #include <SPI.h>
@@ -61,7 +61,7 @@ float radiationValue = 0.0;
 #define SHARE_FEED_ID XXXXX
 
 // replace the Xs with your Pachube API key:
-#define PACHUBE_API_KEY            "2u6FT54p15flDVlRUCug9ncKcvM8jiVcNQ2THI8gK-Y" // fill in your API key 
+#define PACHUBE_API_KEY            "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" // fill in your API key 
 
 
 
