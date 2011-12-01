@@ -16,46 +16,36 @@
  
  http://www.tigoe.net/pcomp/code/category/arduinowiring/873
  This code is in the public domain.
- 
  */
-
 
 #include <SPI.h>
 #include <Ethernet.h>
 
-
 // replace the values with the MAC address of your Ethernet Shield:
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-
 
 // provide an IP address for your Ethernet shield. The IP address below _might_ work:
 byte ip[] = { 192, 168, 1, 110 };
 
-
 // initialize the library instance:
 EthernetClient client;
-
 
 long lastConnectionTime = 0;            // last time you connected to the server, in milliseconds
 boolean lastConnected = false;          // state of the connection last time through the main loop
 const int postingInterval = 10000;  //delay between updates to Pachube.com
 
-
 void setup() {
   // start the ethernet connection and serial port:
   Ethernet.begin(mac, ip);
   Serial.begin(9600);
-  
-   
+    
   // give the ethernet module time to boot up:
   delay(1000);
 }
 
-
 void loop() {
   // read the analog sensor:
   int sensorReading = analogRead(A0);   
-
 
   // if there's incoming data from the net connection.
   // send it out the serial port.  This is for debugging
@@ -65,7 +55,6 @@ void loop() {
         Serial.print(c);
   }
 
-
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:
   if (!client.connected() && lastConnected) {
@@ -73,7 +62,6 @@ void loop() {
         Serial.println("disconnecting.");
         client.stop();
   }
-
 
   // if you're not connected, and ten seconds have passed since
   // your last connection, then connect again and send data:
@@ -84,7 +72,6 @@ void loop() {
   // the loop:
   lastConnected = client.connected();
 }
-
 
 // this method makes a HTTP connection to the server:
 void sendData(int thisData) {
@@ -124,13 +111,10 @@ void sendData(int thisData) {
 }
 
 
-
-
 // This method calculates the number of digits in the
 // sensor reading.  Since each digit of the ASCII decimal
 // representation is a byte, the number of digits equals
 // the number of bytes:
-
 
 int getLength(int someValue) {
   // there's at least one byte:
