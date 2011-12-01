@@ -2,11 +2,11 @@
  Noise Monitor
  Sketch for an Arduino gadget that detects noise.
  This example code is in the public domain.
-*/
+ */
 
-int sensorPin = A0;        // select the input pin for the input device
+int sensorPin = A0; // select the input pin for the input device
 
-
+const int numberOfLEDs = 10;
 
 const int numberOfSamples = 16;
 int sample;
@@ -15,13 +15,19 @@ long runningAverage;
 long sumOfSamples = 0;
 int counter =0;
 
-int threshold[] = {0, 47, 99, 159, 227, 308, 407, 535, 715, 800, 900};
+int threshold[] = {
+  0, 47, 99, 159, 227, 308, 407, 535, 715, 800, 900};
 
+
+// You can play with the sensitivity of the LEDs by removing the above threshold and using 
+// the one below.  Try different values.  Experiment!
+//int threshold[]={
+//  0,25,50,75,100,125,150,175,200,225};
 
 
 void setup()
 {
-  // declare the ledPin as an OUTPUT:
+  // declare the ledPins as an OUTPUT:
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
@@ -33,6 +39,7 @@ void setup()
   pinMode(10, OUTPUT);
   pinMode(11, OUTPUT);
 
+  // setting each pin to LOW so as not to light the LED
   digitalWrite(2, LOW);
   digitalWrite(3, LOW);
   digitalWrite(4, LOW);
@@ -44,23 +51,33 @@ void setup()
   digitalWrite(10, LOW);
   digitalWrite(11, LOW);
 
+  // set the analog 0 pin to input 
+  pinMode(sensorPin, INPUT);
+
+
+  // Getting a baseline noise signal
   for(int i =0; i <=numberOfSamples; i++)
-          {
-           sample = analogRead(sensorPin);
+  {
+    sample = analogRead(sensorPin);
 
-           signal[i] = abs(sample -512);
-           sumOfSamples = sumOfSamples + signal[i];
-          }
+    signal[i] = abs(sample -512);
+    sumOfSamples = sumOfSamples + signal[i];
+  }
 
-  for(int i=0; i <=10; i++)
-         {
-         digitalWrite(i+1, HIGH);
-         }
 
-  for(int i=0; i <=10; i++)
-         {
-         digitalWrite(i+1, LOW);
-         }
+  // tests the LEDs by turning them on...
+  for(int i=0; i <=numberOfLEDs; i++)
+  {
+    digitalWrite(i+1, HIGH);
+    delay(100);
+  }
+
+  // ... and then turning them off.
+  for(int i=0; i <=numberOfLEDs; i++)
+  {
+    digitalWrite(i+1, LOW);
+    delay(100);
+  }
 
 
   Serial.begin(9600);
@@ -71,60 +88,63 @@ void setup()
 
 void loop()
 {
-  // read the value from the sensor:
+  // We want to take a "running average" of the output of the
+  // microphone.  We started getting a baseline average back 
+  // in setup().  Now, we're subtracting the oldest sound 
+  // sample from the running total, taking a new sound sample, 
+  // adding that to the running total, and taking the average.
+  // This gives us a "typical" sound sample.
+
+
+
+  // Increase our counter, to keep track of how many audio samples
+  // we are taking.  If we use more than the number of samples,
+  // use the % (modulo) operator to set the counter to zero.
 
   counter = ++counter % numberOfSamples;
-//  Serial.print("Counter             = ");
-//  Serial.println(counter);
 
+  // subtract the most recent signal to our total audio sample
   sumOfSamples -= signal[counter];
-//  Serial.print("SumOfSamples        = ");
-//  Serial.println(sumOfSamples);
 
+  // take a new audio sample
   sample = analogRead(sensorPin);
-  //sample = 1023;
-  //Serial.print("Signal              = ");
-  //Serial.println(abs(sample-512));
 
+  // assign the sample to an array, and adjust it to remove 
+  // negative values  
   signal[counter] = abs(sample -512);
-//  Serial.print("Signal[counter] = ");
-//  Serial.println(signal[counter]);
 
-
+  // Add the most recent sample to the total audio sample
   sumOfSamples = sumOfSamples + signal[counter];
 
-
-//  Serial.print("SumOfSamples        = ");
-//  Serial.println(sumOfSamples);
-
-  //if (sumOfSamples <0) sumOfSamples = 0;
-
+  // And (this is the key part), take an average of all the samples 
   runningAverage = sumOfSamples/numberOfSamples;
 
-  Serial.print("Running Value   = ");
+  Serial.print("Running Value = ");
   Serial.println(runningAverage);
   Serial.println(" ");
 
-  for (int i =1; i <=10; i++)
+  // light up the LEDs
+  for (int i =0; i <=numberOfLEDs; i++)
   {
 
-        digitalWrite(i+1, LOW);
-        if(runningAverage>threshold[i])
-          {
-          digitalWrite(i+1, HIGH);
-          }
-        else
-          {
-          digitalWrite(i+1, LOW);
-          }
+    // Then see if the average sound meets that LED's threshold value
+    if(runningAverage>threshold[i])
+    {
+      // if so, light the LED
+      digitalWrite(i+1, HIGH);
+      delay(10);
+    }
 
   }
 
-  
-  for (int i =10; i >=1; i--)
+  // turn all LEDs off from right to left.  This keeps the display
+  // "active", like the dislay on an audio amplifier
+  for (int i =numberOfLEDs; i >=1; i--)
   {
-        digitalWrite(i+1, LOW);
+    digitalWrite(i+1, LOW);
   }
 
 
 }
+
+
