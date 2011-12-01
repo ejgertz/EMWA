@@ -63,10 +63,6 @@ float radiationValue = 0.0;
 // replace the Xs with your Pachube API key:
 #define PACHUBE_API_KEY            "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" // fill in your API key 
 
-
-
-
-
 void setup() 
 {
   
@@ -91,8 +87,7 @@ void setup()
     for(;;)
       ;
   }
-  
-  
+   
   // give the ethernet module time to boot up:
   delay(1000);
   
@@ -104,15 +99,16 @@ void setup()
   digitalWrite(geiger_input,HIGH);
 
   attachInterrupt(0,countPulse,CHANGE);
-  
-  
+    
 }
 
-void loop() {
-   
+void loop() 
 
+{
+   
  if (millis()-timePreviousMeassure > postingInterval)
-  {
+
+{
  
         countPerMinute = count*minuteFactor;
         radiationValue = countPerMinute * CONV_FACTOR;
@@ -125,8 +121,7 @@ void loop() {
         Serial.println(radiationValue,4);
         count = 0;
 
-
-  }
+}
 
   // if there's incoming data from the net connection.
   // send it out the serial port.  This is for debugging
@@ -134,7 +129,7 @@ void loop() {
   if (client.available()) {
     char c = client.read();
     Serial.print(c);
-  }
+}
 
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:
@@ -142,20 +137,21 @@ void loop() {
     Serial.println();
     Serial.println("disconnecting.");
     client.stop();
-  }
+}
 
   // if you're not connected, and ten seconds have passed since
   // your last connection, then connect again and send data:
   if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
     sendData(radiationValue);
-  }
+}
+
   // store the state of the connection for next time through
   // the loop:
   lastConnected = client.connected();
 }
 
-
 void countPulse()
+
 {
   detachInterrupt(0);
   count++;
@@ -165,9 +161,6 @@ void countPulse()
   
   attachInterrupt(0,countPulse,CHANGE);
 }
-
-
-
 
 // this method makes a HTTP connection to the server:
 void sendData(int thisData) {
@@ -195,23 +188,27 @@ void sendData(int thisData) {
 
     // note the time that the connection was made:
     lastConnectionTime = millis();
-  } 
-  else {
+} 
+
+  else 
+
+{
     // if you couldn't make a connection:
     Serial.println("connection failed");
-  }
 }
 
-
-
+}
 
 // This method calculates the number of digits in the
 // sensor reading.  Since each digit of the ASCII decimal
 // representation is a byte, the number of digits equals
 // the number of bytes:
 
-int getLength(int someValue) {
-  // there's at least one byte:
+int getLength(int someValue) 
+
+{
+
+// there's at least one byte:
   int digits = 1;
   // continually divide the value by ten, 
   // adding one to the digit count for each
@@ -220,7 +217,8 @@ int getLength(int someValue) {
   while (dividend > 0) {
     dividend = dividend /10;
     digits++;
-  }
+}
+
   // return the number of digits:
   return digits;
 }
