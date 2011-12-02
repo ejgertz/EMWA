@@ -84,7 +84,14 @@ mySerialPort.print("8888");
 delay(WDelay);
 mySerialPort.print("xxxx");
 delay(WDelay);
+
+
 }
+
+
+
+
+
 
 void loop(void)
 {
@@ -93,9 +100,14 @@ float tempF;
 float humid;
 float dewPoint;
 
+
+
+
 DHT22_ERROR_t errorCode;
 
+
 delay(2000);
+
 
 errorCode = myDHT22.readData();
 
@@ -113,7 +125,9 @@ switch(errorCode)
         dispData((int)tempC, 'C');
         
         tempF = (tempC*1.8)+32;
-                   
+        
+        
+        
         delay(WDelay);
         dispData((int) tempF, 'F');
         delay(WDelay);
@@ -133,7 +147,9 @@ switch(errorCode)
         Serial.println("d");
         
         delay(WDelay);
-       
+
+
+        
         break;
         case DHT_ERROR_CHECKSUM:
         Serial.print("Error Cheksum");
@@ -145,36 +161,42 @@ switch(errorCode)
         Serial.print("Not Present");
         break;
         case DHT_ERROR_ACK_TOO_LONG:
-        Serial.print("ACK too long");
         break;
         case DHT_ERROR_SYNC_TIMEOUT:
-        Serial.print("Sync timeout");
         break;
         case DHT_ERROR_DATA_TIMEOUT:
-        Serial.print("Data timeout");
         break;
         case DHT_ERROR_TOOQUICK:
-        Serial.print("Too quick!");
         break;
 }
 
+
+
+
 }
+
+
 
 
 float calculateDewpoint(float T, float RH)
 {
 // approximate dewpoint using the formula from wikipedia's article on dewpoint
 
+
 float dp = 0.0;
 float gTRH = 0.0;
 float a = 17.271;
 float b = 237.7;
 
+
 gTRH = ((a*T)/(b+T))+log(RH/100);
 dp = (b*gTRH)/(a-gTRH);
 
+
 return dp;
 }
+
+
 
 void dispData(int i, char c)
 {
@@ -185,7 +207,8 @@ void dispData(int i, char c)
         return;
         
  }
-  
+ 
+   
  if((i<-999) || (i>9999))
  {
    mySerialPort.print("ERRx");
@@ -235,6 +258,12 @@ void dispData(int i, char c)
  }
 
 }
+
+
+
+
+
+
 
 /*
   DHT22.cpp - DHT22 sensor library
@@ -287,7 +316,7 @@ extern "C" {
 #include <avr/pgmspace.h>
 }
 
-#define DIRECT_READ(base, mask)         (((*(base)) & (mask)) ? 1 : 0)
+#define DIRECT_READ(base, mask)  	(((*(base)) & (mask)) ? 1 : 0)
 #define DIRECT_MODE_INPUT(base, mask)	((*(base+1)) &= ~(mask))
 #define DIRECT_MODE_OUTPUT(base, mask)	((*(base+1)) |= (mask))
 #define DIRECT_WRITE_LOW(base, mask)	((*(base+2)) &= ~(mask))
