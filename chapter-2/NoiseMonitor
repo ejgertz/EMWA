@@ -103,13 +103,13 @@ void loop()
 
   counter = ++counter % numberOfSamples;
 
-  // subtract the most recent signal to our total audio sample
+  // subtract the oldest sample from our total audio sample
   sumOfSamples -= signal[counter];
 
   // take a new audio sample
   sample = analogRead(sensorPin);
 
-  // assign the sample to an array, and adjust it to remove 
+  // assign the sample to an array, normalize and adjust it to remove 
   // negative values  
   signal[counter] = abs(sample -512);
 
