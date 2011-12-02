@@ -22,7 +22,7 @@
  * http://www.tigoe.net/pcomp/code/category/arduinowiring/873
  * This code is in the public domain.
  *
- * Modified Summer -Autumn 2011 by Patrick Di Justo
+ * Modified autumn 2011 by Patrick Di Justo
  */
 
 #include <SPI.h>
