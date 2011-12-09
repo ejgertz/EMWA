@@ -27,7 +27,7 @@ int threshold[] = {
 
 void setup()
 {
-  // declare the ledPins as an OUTPUT:
+  // declare the ledPins as an OUTPUT. We're doing it line-by-line, so you can see what's happening.
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
@@ -65,7 +65,9 @@ void setup()
   }
 
 
-  // tests the LEDs by turning them on...
+  // Tests the LEDs by turning them on.  This time, we're using a for() loop to do the job.
+  // Using for(), while() and other loops is probably how you should handle tasks like this.
+
   for(int i=0; i <=numberOfLEDs; i++)
   {
     digitalWrite(i+1, HIGH);
