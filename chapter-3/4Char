@@ -39,10 +39,6 @@ void setup()
 
 void loop()
 {
-  thou=0;
-  hund=0;
-  tens=0;
-  ones=0;
 
 
   // light up all segments as a test
@@ -57,7 +53,7 @@ void loop()
 
 
 
-  // scroll from 1 to 0 the hard way 
+  // scroll from 1 to 0 the simple but tedious way 
   mySerialPort.print("xxxx");
   delay(Xdelay);  
   mySerialPort.print("xxx1");
@@ -88,22 +84,25 @@ void loop()
   delay(Xdelay); 
 
 
-  // Count from 0 to 1008 by nines
+  // Count from -1009 to 2000
 
-  for (int i =0; i <=1008; i=i+9)
-  {
-    ones = i%10;
-    if(i>=10) tens = ((i%100)-ones)/10;
-    if(i>=100) hund = ((i%1000)-(tens*10)-ones)/100;
-    if(i>=1000) thou = ((i%10000)-(hund*100)-(tens*10)-ones)/1000;
+  for(int i = -1009; i<2000; i++)
+     {
+     if((i<-999) || (i>9999))
+      {
+      mySerialPort.print("ERRx");
+      return;
+      }
+     char fourChars[5];
+     sprintf(fourChars, "%04d", i);
 
-    mySerialPort.print(thou);
-    mySerialPort.print(hund);
-    mySerialPort.print(tens);
-    mySerialPort.print(ones);
+     mySerialPort.print("v");
+     mySerialPort.print(fourChars);
 
-    delay(Xdelay/10);
-  }
+     //add a delay if the numbers go by too fast
+     //delay(Xdelay);
+  
+     }
 
 
 
