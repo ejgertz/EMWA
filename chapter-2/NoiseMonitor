@@ -15,14 +15,12 @@ long runningAverage;
 long sumOfSamples = 0;
 int counter =0;
 
-int threshold[] = {
-  0, 47, 99, 159, 227, 308, 407, 535, 715, 800, 900};
+int threshold[] = { 0, 47, 99, 159, 227, 308, 407, 535, 715, 800, 900};
 
 
 // You can play with the sensitivity of the LEDs by removing the above threshold and using 
 // the one below.  Try different values.  Experiment!
-//int threshold[]={
-//  0,25,50,75,100,125,150,175,200,225};
+//int threshold[]={ 0, 25, 50, 75, 100, 125, 150, 175, 200, 225};
 
 
 void setup()
@@ -67,7 +65,6 @@ void setup()
 
   // Tests the LEDs by turning them on.  This time, we're using a for() loop to do the job.
   // Using for(), while() and other loops is probably how you should handle tasks like this.
-
   for(int i=0; i <=numberOfLEDs; i++)
   {
     digitalWrite(i+1, HIGH);
@@ -97,9 +94,7 @@ void loop()
   // adding that to the running total, and taking the average.
   // This gives us a "typical" sound sample.
 
-
-
-  // Increase our counter, to keep track of how many audio samples
+  // Here we increase our counter, to keep track of how many audio samples
   // we are taking.  If we use more than the number of samples,
   // use the % (modulo) operator to set the counter to zero.
 
@@ -128,7 +123,6 @@ void loop()
   // light up the LEDs
   for (int i =0; i <=numberOfLEDs; i++)
   {
-
     // Then see if the average sound meets that LED's threshold value
     if(runningAverage>threshold[i])
     {
@@ -136,7 +130,6 @@ void loop()
       digitalWrite(i+1, HIGH);
       delay(10);
     }
-
   }
 
   // turn all LEDs off from right to left.  This keeps the display
@@ -145,8 +138,6 @@ void loop()
   {
     digitalWrite(i+1, LOW);
   }
-
-
 }
 
 
